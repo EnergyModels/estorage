@@ -2,6 +2,23 @@ from CoolProp.CoolProp import PropsSI
 import pandas as pd
 
 
+def def_state_init(fluid):
+
+    # Standard temperature and preussre
+    T = 273.15
+    p = 101325.
+
+    state = pd.Series(index=['fluid','T','p','h','s','D'])
+
+    state.fluid = fluid
+    state.T = T
+    state.p = p
+    state.h = PropsSI('H', 'T', T, 'P', p, fluid)
+    state.s = PropsSI('S', 'T', T, 'P', p, fluid)
+    state.D = PropsSI('D', 'T', T, 'P', p, fluid)
+
+    return state
+
 def def_state_tp(fluid, T, p):
 
     state = pd.Series(index=['fluid','T','p','h','s','D'])

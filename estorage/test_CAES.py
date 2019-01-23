@@ -15,7 +15,7 @@ dt = 1.0 # s
 pwr = 1E6 # 1 MW
 
 # Define way to store results
-df = pd.DataFrame(index=t_steps,columns=['dt','pwr','T_tank','p_tank','m_tank','T_cmp','p_cmp','m_dot_cmp'])
+df = pd.DataFrame(index=t_steps,columns=['dt','pwr','T_tank','p_tank','m_tank','T_cmp','p_cmp','m_dot_i','m_dot_o'])
 
 for t_step in t_steps:
     
@@ -33,7 +33,8 @@ for t_step in t_steps:
 
     df.loc[t_step, 'T_cmp'] = sys.cmp.state2['T']
     df.loc[t_step, 'p_cmp'] = sys.cmp.state2['p']
-    df.loc[t_step, 'm_dot_cmp'] = sys.m_dot
+    df.loc[t_step, 'm_dot_i'] = sys.m_dot_i
+    df.loc[t_step, 'm_dot_o'] = sys.m_dot_o
 
 #
 #df.plot(y=['T_tank'])
@@ -58,7 +59,8 @@ ax[1].plot(x, df['p_cmp']*convert,label='p_cmp')
 ax[1].legend()
 ax[1].set_ylabel('Pressure [MPa]')
 # Mass Flow
-ax[2].plot(x, df['m_dot_cmp'],label='m_dot_cmp')
+ax[2].plot(x, df['m_dot_i'],label='inflowm')
+ax[2].plot(x, df['m_dot_o'],label='outflow')
 ax[2].legend()
 ax[2].set_ylabel('Mass Flow [kg/s]')
 # Mass
