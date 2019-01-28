@@ -1,40 +1,46 @@
 from CoolProp.CoolProp import PropsSI
-from state import def_state_ph, def_state_init
 
 
 class Compressor:
     def __init__(self, eff=80.):
-        self.eff = eff  # Isentropic Efficiency (%)
-        fluid = 'Air'
-        self.state1 = def_state_init(fluid)
-        self.state2 = def_state_init(fluid)
-        self.m_dot = 0.0
-        self.Q_dot_1 = 0.0
-        self.Q_dot_2 = 0.0
 
-    def compress(self, state1, p2,pwr):
+        # Performance Definition
+        self.eff_isen = eff  # Isentropic Efficiency (%)
+
+        # Current Operation
+        self.fluid = 'TBD'
+        self.pwr = 0.0
+        self.m_dot = 0.0
+        self.T_in = 0.0
+        self.p_in = 0.0
+        self.Q_dot_in = 0.0
+        self.T_out = 0.0
+        self.p_out = 0.0
+        self.Q_dot_out = 0.0
+
+    def update(self, fluid, T_in, p_in, p_out, pwr):
+
+        # Given
+        self.fluid = fluid
+        self.pwr = pwr
+        self.T_in = T_in
+        self.p_in = p_in
+        self.p_out = p_out
+
         # Inlet
-        fluid = state1['fluid']
-        h1 = state1['h']
-        s1 = state1['s']
+        h1 = PropsSI('H', 'T', self.T_in, 'P', self.p_in, self.fluid)
+        s1 = PropsSI('S', 'T', self.T_in, 'P', self.p_in, self.fluid)
 
         # Outlet
-        h2s = PropsSI('H', 'P', p2, 'S', s1, fluid)
-        h2 = h1 + (h2s - h1) / self.eff
-        state2 = def_state_ph(fluid,p2,h2)
+        h2s = PropsSI('H', 'P', self.p_out, 'S', s1, self.fluid)
+        h2 = h1 + (h2s - h1) / self.eff_isen
+        self.T_out = PropsSI('T', 'P', self.p_out, 'H', h2, self.fluid)
 
         # Mass Flow Rate
-        m_dot = pwr/(state2.h-state1.h)
+        self.m_dot = pwr/(h2-h1)
 
         # Volumetric Flow Rate
-        Q_dot_1 = state1['D']*m_dot
-        Q_dot_2 = state2['D']*m_dot
-
-        # Store results
-        self.state1 = state1
-        self.state2 = state2
-        self.m_dot = m_dot
-        self.Q_dot_1 = Q_dot_1
-        self.Q_dot_2 = Q_dot_2
-
-        return state2
+        rho_in = PropsSI('D', 'T', self.T_in, 'P', self.p_in, self.fluid)
+        self.Q_dot_in = self.m_dot*rho_in
+        rho_out = PropsSI('D', 'T', self.T_out, 'P', self.p_out, self.fluid)
+        self.Q_dot_out = self.m_dot * rho_out
