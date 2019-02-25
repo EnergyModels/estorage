@@ -1,8 +1,8 @@
 import pandas as pd
-from estorage.archive.ambient import Ambient
-from estorage.archive.compressor import Compressor
-from estorage.archive.tank import Tank
-from estorage.archive.turbine import Turbine
+from ambient import Ambient
+from compressor import Compressor
+from tank import Tank
+from turbine import Turbine
 
 variables =     ['dt',
               'pwr_i','pwr_o', # Power
@@ -44,44 +44,6 @@ class CAES:
 
     def charge(self, pwr, dt):
         # Do something
-
-        #
-        T_amb = 25.+273.15
-        P_amb = 101325.
-        fluid = 'Air'
-
-        p2 = tank_pressure
-
-
-        # ----------
-        # Compressor
-        #-----------
-        # Inlet
-        h1 = PropsSI('H', 'T', T_amb, 'P', p_amb, fluid)
-        s1 = PropsSI('S', 'T', T_amb, 'P', p_amb, fluid)
-
-        # Outlet
-        h2s = PropsSI('H', 'P', p_out, 'S', s1, fluid)
-        h2 = h1 + (h2s - h1) / self.eff_isen
-        T_out = PropsSI('T', 'P', p_out, 'H', h2, fluid)
-
-        # Mass Flow Rate
-        m_dot = pwr / (h2 - h1)
-
-        # Cooler
-
-
-
-
-
-
-
-
-
-
-
-
-
         state1 = self.amb.state
         p_tank = self.tank.state.p
         state2 = self.cmp.compress(state1, p_tank,pwr)

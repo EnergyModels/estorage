@@ -2,6 +2,18 @@ from CoolProp.CoolProp import PropsSI
 import pandas as pd
 
 
+class State:
+    self.fluid = T
+    self.T = T
+    self.p = p
+    self.h = PropsSI('H', 'T', T, 'P', p, fluid)
+    self.s = PropsSI('S', 'T', T, 'P', p, fluid)
+    self.D = PropsSI('D', 'T', T, 'P', p, fluid)
+
+
+class Flow(State):
+    self.m_dot = T
+
 def def_state_init(fluid):
 
     # Standard temperature and preussre

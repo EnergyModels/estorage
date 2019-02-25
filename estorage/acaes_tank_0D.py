@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Performance variables for charging (C) and discharging (D)
-variablesC = ['t','pwr','m_dot','p1','T1','p2','T2','p3','T3','p_cav','T_cav','Q_clr','E_stor','Q_stor']
-variablesD = ['t','pwr','m_dot','p4','T4','p5','T5','p6','T6','p_cav','T_cav','Q_htr','E_stor','Q_stor']
+variablesC = ['t','pwr','m_dot','p1','T1','p2','T2','p3','T3','p_tnk','T_tnk','Q_clr','E_stor','Q_stor']
+variablesD = ['t','pwr','m_dot','p4','T4','p5','T5','p6','T6','p_tnk','T_tnk','Q_htr','E_stor','Q_stor']
 
-class ACAES_0D:
+class ACAES_TANK_0D:
 
     def __init__(self, cmp_eff=0.80,trb_eff=0.88,T_stor=150,p_max=75.0,pwr=10,V=1E6):
 
@@ -17,7 +17,7 @@ class ACAES_0D:
 
         # Ambient Conditions
         self.fluid = 'Air'
-        self.T_amb = 25. + 273.15  # K
+        self.T_amb = 20. + 273.15  # K
         self.p_amb = 101325.  # Pa
         # Compressor
         self.cmp_eff = cmp_eff
@@ -25,11 +25,10 @@ class ACAES_0D:
         self.trb_eff = trb_eff
         # Cooler
         self.T_stor = T_stor + 273.15  # convert from C to K
-        # Cavern
+        # Tank
         self.V = V  # m3
         self.p_min = 2.0 * self.p_amb # convert from bar to Pa
         self.p_max = p_max * self.p_amb # convert from bar to Pa
-        self.T_cav = self.T_amb
         # Simulation
         self.dt = 60.0  # s
         self.pwr = pwr*10E6  # convert from MW to W
@@ -57,10 +56,11 @@ class ACAES_0D:
         h1 = PropsSI('H', 'T', T1, 'P', p1, self.fluid)
         s1 = PropsSI('S', 'T', T1, 'P', p1, self.fluid)
 
-        # Cavern
-        p_cav = self.p_min
-        m_cav = self.V*PropsSI('D', 'T', self.T_cav, 'P', p_cav, self.fluid)
-        # u_tnk = PropsSI('U', 'T', T_tnk, 'P', p_tnk, self.fluid)
+        # Air Tank
+        T_tnk = self.T_amb
+        p_tnk = self.p_min
+        m_tnk = self.V*PropsSI('D', 'T', T_tnk, 'P', p_tnk, self.fluid)
+        u_tnk = PropsSI('U', 'T', T_tnk, 'P', p_tnk, self.fluid)
         MW = PropsSI('MOLEMASS', self.fluid) # kg/mol
         R = PropsSI('GAS_CONSTANT', self.fluid) # J/mol-K
 
@@ -72,11 +72,11 @@ class ACAES_0D:
         # Charge
         #-------------------------------------
         t = 0.
-        while p_cav < self.p_max:
+        while p_tnk < self.p_max:
             t = t + self.dt
 
             # Compressor
-            p2 = p_cav
+            p2 = p_tnk
             h2s = PropsSI('H', 'P', p2, 'S', s1, self.fluid)
             h2 = h1 + (h2s - h1) / self.cmp_eff
             T2 = PropsSI('T', 'P', p2, 'H', h2, self.fluid)
@@ -90,13 +90,13 @@ class ACAES_0D:
 
             # Storage Tank
             # Mass balance
-            m_cav = m_cav + m_dot*self.dt
-            n = m_cav / MW  # moles
+            m_tnk = m_tnk + m_dot*self.dt
+            n = m_tnk / MW  # moles
             # Energy balance
-            # Cv = PropsSI('CVMASS', 'T', self.T_cav, 'P', p_tnk, self.fluid)  # Assume small differences in Cv
-            # u_tnk = ((m_tnk-m_dot*self.dt)*u_tnk + m_dot*self.dt*h3)/(m_tnk)
-            # T_tnk = u_tnk / Cv
-            p_tnk = n * R * self.T_cav / self.V
+            Cv = PropsSI('CVMASS', 'T', T_tnk, 'P', p_tnk, self.fluid)  # Assume small differences in Cv
+            u_tnk = ((m_tnk-m_dot*self.dt)*u_tnk + m_dot*self.dt*h3)/(m_tnk)
+            T_tnk = u_tnk / Cv
+            p_tnk = n * R * T_tnk / self.V
 
             # Energy/Heat Storage
             Q_stor = Q_stor + Q_clr*self.dt
@@ -113,8 +113,8 @@ class ACAES_0D:
             s['T2'] = T2
             s['p3'] = p3
             s['T3'] = T3
-            s['p_cav'] = p_cav
-            s['T_cav'] = self.T_cav
+            s['p_tnk'] = p_tnk
+            s['T_tnk'] = T_tnk
             s['Q_clr'] = Q_clr
             s['Q_stor'] = Q_stor
             s['E_stor'] = E_stor
@@ -132,18 +132,18 @@ class ACAES_0D:
         #-------------------------------------
         t = 0.
 
-        while p_cav > self.p_min and E_stor>0.0:
+        while p_tnk > self.p_min and E_stor>0.0:
             t = t + self.dt
 
             # Heater
-            T4 = self.T_cav
-            p4 = p_cav
+            T4 = T_tnk
+            p4 = p_tnk
             h4 = PropsSI('H', 'T', T4, 'P', p4, self.fluid)
-            p5 = p_cav
+            p5 = p_tnk
             if Q_stor>0:
-                T5 = max(self.T_stor, self.T_cav)
+                T5 = max(self.T_stor, T_tnk)
             else:
-                T5 = self.T_cav
+                T5 = T_tnk
             h5 = PropsSI('H', 'T', T5, 'P', p5, self.fluid)
             s5 = PropsSI('S', 'T', T5, 'P', p5, self.fluid)
 
@@ -157,15 +157,15 @@ class ACAES_0D:
             # Revisit Heater
             Q_htr = m_dot * (h5 - h4)
 
-            # Cavern
+            # Storage Tank
                 # Mass balance
-            m_cav = m_cav - m_dot*self.dt
-            n = m_cav / MW  # moles
+            m_tnk = m_tnk - m_dot*self.dt
+            n = m_tnk / MW  # moles
                 # Energy balance
-            # Cv = PropsSI('CVMASS', 'T', T_tnk, 'P', p_tnk, self.fluid)  # Assume small differences in Cv
-            # u_tnk = ((m_tnk+m_dot*self.dt)*u_tnk - m_dot*self.dt*h4)/(m_tnk)
-            # T_tnk = u_tnk / Cv
-            p_tnk = n * R * self.T_cav / self.V
+            Cv = PropsSI('CVMASS', 'T', T_tnk, 'P', p_tnk, self.fluid)  # Assume small differences in Cv
+            u_tnk = ((m_tnk+m_dot*self.dt)*u_tnk - m_dot*self.dt*h4)/(m_tnk)
+            T_tnk = u_tnk / Cv
+            p_tnk = n * R * T_tnk / self.V
 
             # Energy/Heat Storage
             Q_stor = Q_stor - Q_htr*self.dt
@@ -188,8 +188,8 @@ class ACAES_0D:
             s['T5'] = T5
             s['p6'] = p6
             s['T6'] = T6
-            s['p_cav'] = p_cav
-            s['T_cav'] = self.T_cav
+            s['p_tnk'] = p_tnk
+            s['T_tnk'] = T_tnk
             s['Q_htr'] = Q_htr
             s['Q_stor'] = Q_stor
             s['E_stor'] = E_stor
@@ -243,7 +243,7 @@ class ACAES_0D:
         ax[0,0].plot(x, self.dfC['T1']-convert,label='T1')
         ax[0,0].plot(x, self.dfC['T2']-convert,label='T2')
         ax[0,0].plot(x, self.dfC['T3']-convert,label='T3')
-        ax[0,0].plot(x, self.dfC['T_cav']-convert,label='T_cav')
+        ax[0,0].plot(x, self.dfC['T_tnk']-convert,label='T_tnk')
         ax[0,0].legend()
         ax[0,0].set_ylabel('Temp [C]')
         # Press
@@ -251,7 +251,7 @@ class ACAES_0D:
         ax[1,0].plot(x, self.dfC['p1']*convert,label='p1')
         ax[1,0].plot(x, self.dfC['p2']*convert,label='p2')
         ax[1,0].plot(x, self.dfC['p3']*convert,label='p3')
-        ax[1,0].plot(x, self.dfC['p_cav']*convert,label='p_cav')
+        ax[1,0].plot(x, self.dfC['p_tnk']*convert,label='p_tnk')
         ax[1,0].legend()
         ax[1,0].set_ylabel('Pressure [MPa]')
         # Power/Heat
@@ -276,7 +276,7 @@ class ACAES_0D:
         ax[0,1].plot(x, self.dfD['T4']-convert,label='T4')
         ax[0,1].plot(x, self.dfD['T5']-convert,label='T5')
         ax[0,1].plot(x, self.dfD['T6']-convert,label='T6')
-        ax[0,1].plot(x, self.dfD['T_cav']-convert,label='T_cav')
+        ax[0,1].plot(x, self.dfD['T_tnk']-convert,label='T_tnk')
         ax[0,1].legend()
         ax[0,1].set_ylabel('Temp [C]')
 
@@ -285,7 +285,7 @@ class ACAES_0D:
         ax[1,1].plot(x, self.dfD['p4']*convert,label='p4')
         ax[1,1].plot(x, self.dfD['p5']*convert,label='p5')
         ax[1,1].plot(x, self.dfD['p6']*convert,label='p6')
-        ax[1,1].plot(x, self.dfD['p_cav']*convert,label='p_cav')
+        ax[1,1].plot(x, self.dfD['p_tnk']*convert,label='p_tnk')
         ax[1,1].legend()
         ax[1,1].set_ylabel('Pressure [MPa]')
         # Power/heat
