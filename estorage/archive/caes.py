@@ -1,8 +1,8 @@
 import pandas as pd
-from ambient import Ambient
-from compressor import Compressor
-from tank import Tank
-from turbine import Turbine
+from estorage.archive.ambient import Ambient
+from estorage.archive.compressor import Compressor
+from estorage.archive.tank import Tank
+from estorage.archive.turbine import Turbine
 
 variables =     ['dt',
               'pwr_i','pwr_o', # Power
