@@ -53,6 +53,7 @@ while p_tnk < p_max:
 
     # Compressor
     p2 = p_tnk
+    delta_h = kappa/(kappa - 1.0)*R*T1*((p2/p1)**((kappa-1.0)/kappa) - 1.0)
     h2s = PropsSI('H', 'P', p2, 'S', s1, fluid)
     h2 = h1 + (h2s - h1) / cmp_eff
     T2 = PropsSI('T', 'P', p2, 'H', h2, fluid)

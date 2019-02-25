@@ -121,6 +121,7 @@ class ACAES_0D:
         #-------------------------------------
         E_in = E_stor
         Q_in = Q_stor
+        self.E_stor_max = E_stor/1E6/60./60. # convert from Ws to MWh
 
         #-------------------------------------
         # Discharge
@@ -135,7 +136,10 @@ class ACAES_0D:
             p4 = p_tnk
             h4 = PropsSI('H', 'T', T4, 'P', p4, self.fluid)
             p5 = p_tnk
-            T5 = max(self.T_stor, T_tnk)
+            if Q_stor>0:
+                T5 = max(self.T_stor, T_tnk)
+            else:
+                T5 = T_tnk
             h5 = PropsSI('H', 'T', T5, 'P', p5, self.fluid)
             s5 = PropsSI('S', 'T', T5, 'P', p5, self.fluid)
 
@@ -144,7 +148,7 @@ class ACAES_0D:
             h6s = PropsSI('H', 'P', p6, 'S', s5, self.fluid)
             h6 = h5 + (h6s - h5) * self.trb_eff
             T6 = PropsSI('T', 'P', p6, 'H', h6, self.fluid)
-            m_dot = pwr / (h5 - h6)
+            m_dot = self.pwr / (h5 - h6)
 
             # Revisit Heater
             Q_htr = m_dot * (h5 - h4)
@@ -189,10 +193,15 @@ class ACAES_0D:
         E_out = E_in- E_stor
         self.RTE = E_out/E_in*100.0
         self.Heat_Util = Q_out/Q_in*100.0
-        print "RTE: " + str(self.RTE)
-        print "Heat_Util: " + str(self.Heat_Util)
+        # print "RTE: " + str(self.RTE)
+        # print "Heat_Util: " + str(self.Heat_Util)
 
-        return self.RTE, self.Heat_Util
+        results = pd.Series(index=['RTE','Heat_Util','E_stor_max'])
+        results['RTE'] = self.RTE
+        results['Heat_Util'] = self.Heat_Util
+        results['E_stor_max'] = self.E_stor_max
+
+        return results
 
     # -------------------------------------
     # Create Plots
