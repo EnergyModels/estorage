@@ -10,11 +10,17 @@ import numpy as np
 Ns = 0.6
 Ds = 3.0
 eff = 0.85
+PR_stg_max = 3.6
+
 
 # Inlet Conditions
 fluid = 'Air'
 T1 = 20.+273.15  # Total temperature (K)
 p1 = 101325.  # Total Pressure (Pa)
+
+# Sweeps
+PRs = np.array([50,75,100])
+RPMs = np.arange(3600,72000,1000)
 
 # Conditions to Vary
 PRs = [2.0,4.0,6.0,8.0,10.0,12.0,14.0] # Pressure Ratio
