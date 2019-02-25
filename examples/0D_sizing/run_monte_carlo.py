@@ -35,7 +35,7 @@ if __name__ == '__main__':
     #==============
     studyName = "results_monte_carlo"
 
-    iterations = 100
+    iterations = 10
 
     # High and low values to evaluate
     V = [1E3, 1E5]  # m3

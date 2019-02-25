@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Performance variables for charging (C) and discharging (D)
-variablesC = ['t','pwr','m_cav','m_hw','m_dot','m_dot_w','p1','T1','p2','T2','p3','T3','p_cav','T_cav','T_cw','T_hw','Q_clr','E_stor','Q_stor']
-variablesD = ['t','pwr','m_cav','m_hw','m_dot','m_dot_w','p4','T4','p5','T5','p6','T6','p_cav','T_cav','T_cw','T_hw','Q_htr','E_stor','Q_stor']
+variablesC = ['t','pwr','m_cav','m_hw','m_dot','m_dot_w','p1','T1','p2','T2','p3','T3','p_cav','T_cav','T_c','T_h','Q_clr','E_stor','Q_stor']
+variablesD = ['t','pwr','m_cav','m_hw','m_dot','m_dot_w','p4','T4','p5','T5','p6','T6','p_cav','T_cav','T_c','T_h','Q_htr','E_stor','Q_stor']
 
 class ACAES_IDEALGAS_0D:
 
@@ -19,7 +19,7 @@ class ACAES_IDEALGAS_0D:
         self.gamma = 1.4
         # Water Properties
         self.hxer_approach = 10.0 # K
-        self.T_cw = 25. + 273.15  # K
+        self.T_c = 25. + 273.15  # K
         # self.effect = 0.8
         # Ambient Conditions
 
@@ -66,8 +66,11 @@ class ACAES_IDEALGAS_0D:
         MW = PropsSI('MOLEMASS', 'Air')  # kg/mol
         R = PropsSI('GAS_CONSTANT', 'Air')  # J/mol-K
 
-        # Water Properties
-        CP_w = PropsSI('CPMASS', "T", self.T_amb, "P", self.p_amb, 'Water')  # J/Kg
+        # Heat Transfer Fluid Properties
+        T_ht_max = 398.00 + 273.15
+        CP_ht_low = PropsSI('CPMASS', "T", self.T_amb, "P", self.p_amb, 'INCOMP::S800')  # J/Kg
+        CP_ht_high = PropsSI('CPMASS', "T", T_ht_max, "P", self.p_amb, 'INCOMP::S800')  # J/Kg
+        CP_ht = 0.5*(CP_ht_low + CP_ht_high)
 
         # Ambient
         T1 = self.T_amb
@@ -82,9 +85,9 @@ class ACAES_IDEALGAS_0D:
         Q_stor = 0.0
 
         # Water Reservoirs
-        self.T_cw = self.T_amb
-        T_hw = self.T_amb
-        m_hw = 0.001
+        self.T_c = self.T_amb
+        T_h = self.T_amb
+        m_h = 0.001
 
         #-------------------------------------
         # Charge
@@ -100,25 +103,28 @@ class ACAES_IDEALGAS_0D:
 
             # Cooler - Air Side
             p3 = p2
-            if T2-self.T_cw > self.hxer_approach:
-                T3 = self.T_cw + self.hxer_approach
+            if T2-self.T_c > self.hxer_approach:
+                T3 = self.T_c + self.hxer_approach
                 Q_clr = m_dot * CP * (T2 - T3)
             else:
                 T3 = T2
                 Q_clr = 0.0
 
-            # Cooler - Water Side
-            if T2 > T3:
-                T_hw_in = T2 - self.hxer_approach
-                m_dot_w = Q_clr / (CP_w*(T_hw_in-self.T_cw))
+            # Cooler - Heat Transfer Fluid Side
+            if T2 > T_ht_max:
+                T_h_in = T_ht_max - self.hxer_approach
+                m_dot_ht = Q_clr / (CP_ht * (T_h_in - self.T_c))
+            elif T2 > T3:
+                T_h_in = T2 - self.hxer_approach
+                m_dot_ht = Q_clr / (CP_ht*(T_h_in-self.T_c))
             else:
-                T_hw_in = 0.0
-                m_dot_w = 0.0
+                T_h_in = 0.0
+                m_dot_ht = 0.0
 
-            # Hot Water Storage
-            m_hw_in = m_dot_w*self.dt
-            T_hw = (m_hw*T_hw + m_hw_in*T_hw_in)/ (m_hw + m_hw_in)
-            m_hw = m_hw + m_hw_in
+            # Hot Storage
+            m_h_in = m_dot_ht*self.dt
+            T_h = (m_h*T_h + m_h_in*T_h_in)/ (m_h + m_h_in)
+            m_h = m_h + m_h_in
 
             # Cavern
             m_cav = m_cav + m_dot*self.dt
@@ -133,9 +139,9 @@ class ACAES_IDEALGAS_0D:
             s['t']= t
             s['pwr'] = self.pwr
             s['m_cav'] = m_cav
-            s['m_hw'] = m_hw
+            s['m_h'] = m_h
             s['m_dot'] = m_dot
-            s['m_dot_w'] = m_dot_w
+            s['m_dot_ht'] = m_dot_ht
             s['p1'] = p1
             s['T1'] = T1
             s['p2'] = p2
@@ -144,8 +150,8 @@ class ACAES_IDEALGAS_0D:
             s['T3'] = T3
             s['p_cav'] = p_cav
             s['T_cav'] = self.T_cav
-            s['T_cw'] = self.T_cw
-            s['T_hw'] = T_hw
+            s['T_c'] = self.T_c
+            s['T_h'] = T_h
             s['Q_clr'] = Q_clr
             s['Q_stor'] = Q_stor
             s['E_stor'] = E_stor
@@ -167,15 +173,15 @@ class ACAES_IDEALGAS_0D:
         #-------------------------------------
         t = 0.
 
-        while p_cav > self.p_min and m_hw>0.0:
+        while p_cav > self.p_min and m_h>0.0:
             t = t + self.dt
 
             # Heater - Air Side
             T4 = self.T_cav
             p4 = p_cav
             p5 = p_cav
-            if T_hw - self.T_cav > self.hxer_approach:
-                T5 = T_hw - self.hxer_approach
+            if T_h - self.T_cav > self.hxer_approach:
+                T5 = T_h - self.hxer_approach
             else:
                 T5 = T4
 
@@ -189,12 +195,12 @@ class ACAES_IDEALGAS_0D:
 
             # Heater - Water Side & How Water Storage
             if T4 < T5:
-                T_cw_in = T4 + self.hxer_approach
-                m_dot_w = Q_htr/(CP_w * (T5 - T_cw_in))
+                T_c_in = T4 + self.hxer_approach
+                m_dot_ht = Q_htr/(CP_ht * (T5 - T_c_in))
             else:
-                T_cw_in = 0.0
-                m_dot_w = 0.0
-            m_hw = m_hw -m_dot_w*self.dt
+                T_c_in = 0.0
+                m_dot_ht = 0.0
+            m_h = m_h -m_dot_ht*self.dt
 
             # Cavern
             m_cav = m_cav - m_dot*self.dt
@@ -215,9 +221,9 @@ class ACAES_IDEALGAS_0D:
             s['t']= t
             s['pwr'] = self.pwr
             s['m_cav'] = m_cav
-            s['m_hw'] = m_hw
+            s['m_h'] = m_h
             s['m_dot'] = m_dot
-            s['m_dot_w'] = m_dot_w
+            s['m_dot_ht'] = m_dot_ht
             s['p4'] = p4
             s['T4'] = T4
             s['p5'] = p5
@@ -226,8 +232,8 @@ class ACAES_IDEALGAS_0D:
             s['T6'] = T6
             s['p_cav'] = p_cav
             s['T_cav'] = self.T_cav
-            s['T_cw'] = self.T_cw
-            s['T_hw'] = T_hw
+            s['T_c'] = self.T_c
+            s['T_h'] = T_h
             s['Q_htr'] = Q_htr
             s['Q_stor'] = Q_stor
             s['E_stor'] = E_stor
@@ -256,7 +262,7 @@ class ACAES_IDEALGAS_0D:
         # Convert to C
         self.T_out_min = self.T_out_min - 273.15
 
-        results = pd.Series(index=['RTE','Heat_Util','E_in','E_out','Q_in','Q_out','T_out_min','Ebal','Qbal','T_hw'])
+        results = pd.Series(index=['RTE','Heat_Util','E_in','E_out','Q_in','Q_out','T_out_min','Ebal','Qbal','T_h'])
         results['RTE'] = self.RTE
         results['Heat_Util'] = self.Heat_Util
         results['E_in'] = self.E_in
@@ -266,7 +272,7 @@ class ACAES_IDEALGAS_0D:
         results['T_out_min'] = self.T_out_min
         results['Ebal'] = self.E_in - self.E_out
         results['Qbal'] = self.Q_in - self.Q_out
-        results['T_hw'] = T_hw
+        results['T_h'] = T_h - 273.15
         results['m_dot_des'] = self.m_dot_des
 
         return results
@@ -287,8 +293,8 @@ class ACAES_IDEALGAS_0D:
         ax[0, 0].plot(x, self.dfC['T2']-convert,label='T2',marker='v')
         ax[0, 0].plot(x, self.dfC['T3']-convert,label='T3',marker='x')
         ax[0, 0].plot(x, self.dfC['T_cav']-convert,label='T_cav',marker='<')
-        ax[0, 0].plot(x, self.dfC['T_cw'] - convert, label='T_cw',marker='>')
-        ax[0, 0].plot(x, self.dfC['T_hw'] - convert, label='T_hw',marker='*')
+        ax[0, 0].plot(x, self.dfC['T_c'] - convert, label='T_c',marker='>')
+        ax[0, 0].plot(x, self.dfC['T_h'] - convert, label='T_h',marker='*')
         ax[0, 0].legend()
         ax[0, 0].set_ylabel('Temp [C]')
         # Press
@@ -313,7 +319,7 @@ class ACAES_IDEALGAS_0D:
         ax[3, 0].set_ylabel('Power/heat Storage [GJ]')
         # Mass Storage
         ax[4, 0].plot(x, self.dfC['m_cav'], label='m_cav',marker='o')
-        ax[4, 0].plot(x, self.dfC['m_hw'], label='m_hw',marker='x')
+        ax[4, 0].plot(x, self.dfC['m_h'], label='m_h',marker='x')
         ax[4, 0].legend()
         ax[4, 0].set_ylabel('Mass Storage [kg]')
 
@@ -327,8 +333,8 @@ class ACAES_IDEALGAS_0D:
         ax[0, 1].plot(x, self.dfD['T5']-convert,label='T5',marker='v')
         ax[0, 1].plot(x, self.dfD['T6']-convert,label='T6',marker='x')
         ax[0, 1].plot(x, self.dfD['T_cav']-convert,label='T_cav',marker='<')
-        ax[0, 1].plot(x, self.dfD['T_cw'] - convert, label='T_cw',marker='>')
-        ax[0, 1].plot(x, self.dfD['T_hw'] - convert, label='T_hw',marker='*')
+        ax[0, 1].plot(x, self.dfD['T_c'] - convert, label='T_c',marker='>')
+        ax[0, 1].plot(x, self.dfD['T_h'] - convert, label='T_h',marker='*')
         ax[0, 1].legend()
         ax[0, 1].set_ylabel('Temp [C]')
 
@@ -354,7 +360,7 @@ class ACAES_IDEALGAS_0D:
         ax[3, 1].set_ylabel('Power/heat Storage [GJ]')
         # Mass Storage
         ax[4, 1].plot(x, self.dfD['m_cav'], label='m_cav',marker='o')
-        ax[4, 1].plot(x, self.dfD['m_hw'], label='m_hw',marker='x')
+        ax[4, 1].plot(x, self.dfD['m_h'], label='m_h',marker='x')
         ax[4, 1].legend()
         ax[4, 1].set_ylabel('Mass Storage [kg]')
 
