@@ -10,8 +10,15 @@ import numpy as np
 Ns = 0.6
 Ds = 3.0
 eff = 0.85
+PR_stg_min = 1.5
 PR_stg_max = 3.6
 
+# Specific Speed Chart Inputs
+Ns_ideal = [17.53573098,20.31460093,23.85633867,29.94568557,39.64060977,60.83324952,139.5346754]
+Ds_ideal = [7.848168406,6.761801714,5.905258342,4.690713434,3.388928695,2.288095758,1.116116401]
+eff_ideal = [0.3,0.4,0.5,0.6,0.7,0.8,0.8]
+f_Ds = interp1d(Ns_ideal,Ds_ideal)
+f_eff = interp1d(Ns_ideal,eff_ideal)
 
 # Inlet Conditions
 fluid = 'Air'
@@ -64,15 +71,7 @@ for RPM in RPMs:
         # Calculate Mass flow and power output
         m_dot = V1 * D1 # kg/s
         pwr = H_ad * m_dot / 1000.0  # MW
-        
-        # Compare with real gas calculations
-        p2 = p1 * PR
-        h1 = PropsSI('H', 'T', T1, 'P', p1, fluid)
-        s1 = PropsSI('S', 'T', T1, 'P', p1, fluid)
-        h2s = PropsSI('H', 'P', p2, 'S', s1, fluid)
-        h2 = h1 + (h2s - h1) / eff
-        T2 = PropsSI('T', 'P', p2, 'H', h2, fluid)
-        pwr_real = m_dot * (h2 - h1) / 1E6 # MW
+
         
         print "Balje pwr:    " + str(pwr)
         print "Real-gas pwr: " + str(pwr_real)
