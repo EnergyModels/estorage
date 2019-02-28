@@ -11,17 +11,16 @@ PR_stg_max = 3.6
 
 # Specific Speed Chart Inputs
 
-Ns_ideal = np.array([0.156592415,0.213784951,0.314421351,0.374907082,0.462458607,0.627128919,1.063672257,2.33449929,6.27822242,8.458415169,11.24347938,16.65613494,26.4048703])
-Ds_ideal = np.array([17.82794648,12.62762237,8.191486162,6.642324943,5.533819167,4.054427281,3.03140973,2.491585363,1.850350655,1.616281072,1.520845751,1.337472543,1.168282103])
-eff_ideal = np.array([0.5,0.6,0.7,0.75,0.8,0.85,0.85,0.85,0.8,0.75,0.7,0.6,0.5])
-Ns_radial = [0.156, 0.627]
-Ns_axial = [2.334, 26.405]
+Ns_ideal = np.array([0.133572762,0.212011551,0.512807173,0.654492961,0.846899073,1.025182722])
+Ds_ideal = np.array([10.09832427,7.420479838,3.489818315,3.010946394,2.563377933,2.212805889])
+eff_ideal = np.array([0.7,0.8,0.9,0.9,0.8,0.7])
 
 
-def SIZE_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM_low=10000, RPM_high=50000, RPM_cases = 5, debug=False):
+def SIZE_AIR_TRB(p_in=1.01325, t_in=400.0, t_out=20.0, p_out=1.01325, m_dot=2.2, RPM_low=10000, RPM_high=50000, RPM_cases = 5, debug=False):
     # Convert Inputs
     p_in = p_in * 1E5  # from bar to Pa
     t_in = t_in + 273.15  # from C to K
+    t_out = t_out + 273.15  # from C to K
     p_out = p_out * 1E5  # from bar to Pa
 
     # Interpolate Specific Speed Chart Inputs
@@ -29,7 +28,7 @@ def SIZE_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM_low=10000, 
     f_eff = interp1d(Ns_ideal, eff_ideal)
 
     # Determine range of stages to consider
-    PR = p_out / p_in
+    PR = p_in / p_out
     Nstg_low = math.ceil(math.log(PR) / math.log(PR_stg_max))
     Nstg_high = math.floor(math.log(PR) / math.log(PR_stg_min))
     Nstgs = np.arange(Nstg_low, Nstg_high, 1)
@@ -47,14 +46,14 @@ def SIZE_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM_low=10000, 
     # Constants and Fluid Properties
     g = 9.81  # m/s^2
     fluid = 'Air'
-    CP = PropsSI('CPMASS', "T", t_in, "P", p_in, fluid) / 1000.0  # KJ/Kg-K
-    CV = PropsSI('CVMASS', "T", t_in, "P", p_in, fluid) / 1000.0  # KJ/Kg-K
+    CP = PropsSI('CPMASS', "T", t_out, "P", p_out, fluid) / 1000.0  # KJ/Kg-K
+    CV = PropsSI('CVMASS', "T", t_out, "P", p_out, fluid) / 1000.0  # KJ/Kg-K
     kappa = CP / CV
     MW = PropsSI('M', fluid) * 1000.0  # kg/kmol
     R_bar = PropsSI('GAS_CONSTANT', fluid)  # kJ/kmol/K
     R = R_bar / MW * 1000.0  # J/kg-K
-    D1 = PropsSI('D', 'T', t_in, 'P', p_in, fluid)  # Density (kg/m3)
-    V1 = m_dot * D1 # m3/s
+    D3 = PropsSI('D', 'T', t_out, 'P', p_out, fluid)  # Density (kg/m3)
+    V3 = m_dot * D3 # m3/s
 
     # Print-out values, if debugging
     if debug == True:
@@ -66,12 +65,12 @@ def SIZE_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM_low=10000, 
         print 'MW    :' + str(round(MW, 3)) + ' (kg/kmol)'
         print 'R_bar :' + str(round(R_bar, 3)) + ' (kJ/kmol-K)'
         print 'R     :' + str(round(R, 3)) + ' (J/kg-K)'
-        print 'D1    :' + str(round(D1, 3)) + ' (kg/m^3)'
-        print 'V1    :' + str(round(V1, 3)) + ' (m^3/s)\n'
+        print 'D3    :' + str(round(D3, 3)) + ' (kg/m^3)'
+        print 'V3    :' + str(round(V3, 3)) + ' (m^3/s)\n'
         print 'Begin Cases'
 
     # DataFrame to hold results
-    variables = ['p_in', 't_in', 'p_out', 'm_dot', 'V1', 'Nstg', 'PR_stg', 'RPM', 'H_ad',
+    variables = ['p_in', 't_out', 'p_out', 'm_dot', 'V3', 'Nstg', 'PR_stg', 'RPM', 'H_ad',
                  'g', 'Ns', 'Ds', 'D', 'eff', 'type']
     df = pd.DataFrame(columns=variables)
 
@@ -85,8 +84,8 @@ def SIZE_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM_low=10000, 
             # Balje Calculations (Ideal gas)
             omega = 2 * pi / 60.0 * RPM  # rad/s
             # omega = RPM
-            H_ad = kappa / (kappa - 1.0) * R * t_in * ((PR_stg) ** ((kappa - 1.0) / kappa) - 1.0)  # kJ/kg
-            Ns = (omega*V1**0.5)/(H_ad)**0.75
+            H_ad = kappa / (kappa - 1.0) * R * t_in * (1.0 - (1.0/PR_stg) ** ((kappa - 1.0) / kappa))  # kJ/kg
+            Ns = (omega*V3**0.5)/(H_ad)**0.75
 
             # Print-out values, if debugging
             if debug == True:
@@ -101,15 +100,10 @@ def SIZE_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM_low=10000, 
             if Ns_ideal.min() <= Ns and Ns <= Ns_ideal.max():
                 eff = f_eff(Ns)
                 Ds =  f_Ds(Ns)
-                D = (Ds * (V1) ** 0.5) / (g * H_ad) ** 0.25
+                D = (Ds * (V3) ** 0.5) / (g * H_ad) ** 0.25
 
-                # Classify Machine Type
-                if Ns < Ns_radial[1]:
-                    machine_type = 'Radial'
-                elif Ns_axial[0] < Ns:
-                    machine_type = 'Axial'
-                else:
-                    machine_type = 'Mixed'
+                # Classify Machine Type (Only one included)
+                machine_type = 'Radial'
 
                 # Print-out values, if debugging
                 if debug == True:
@@ -135,9 +129,9 @@ def SIZE_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM_low=10000, 
 
     # Store Inputs
     df.loc[:, 'p_in'] = p_in / 1E5  # from Pa back to bar
-    df.loc[:, 't_in'] = t_in - 273.15  # from K back to C
+    df.loc[:, 't_out'] = t_out - 273.15  # from K back to C
     df.loc[:, 'p_out'] = p_out / 1E5  # from Pa back to bar
     df.loc[:, 'm_dot'] = m_dot  # kg/s
-    df.loc[:, 'V1'] = V1  # m3/s
+    df.loc[:, 'V3'] = V3  # m3/s
 
     return df
