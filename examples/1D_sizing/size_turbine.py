@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 
 
 # Test
-designs = SIZE_AIR_TRB(p_in=2.2, t_out=20.0, p_out=1.01325, m_dot=2.2, RPM_low=22000, RPM_high=22000, RPM_cases = 1, debug=True)
+designs = SIZE_AIR_TRB(p_in=2.2, t_in=400.0, t_out=20.0, p_out=1.01325, m_dot=2.2, RPM_low=22000, RPM_high=22000, RPM_cases = 1, debug=True)
 
 # Run Sweep
-designs = SIZE_AIR_TRB(p_in=31.1, t_out=20.0, p_out=1.01325, m_dot=13.82, RPM_low=1800, RPM_high=15000, RPM_cases = 20, debug=False)
+designs = SIZE_AIR_TRB(p_in=31.1, t_in=370.0, t_out=20.0, p_out=1.01325, m_dot=13.82, RPM_low=1800, RPM_high=15000, RPM_cases = 20, debug=False)
 
 designs.to_csv("trb_sizing_results.csv")
 
