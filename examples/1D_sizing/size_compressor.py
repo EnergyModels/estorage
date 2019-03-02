@@ -15,23 +15,20 @@ designs.to_csv("cmp_sizing_results.csv")
 if len(designs)>0:
     sns.set_style('white')
 
-    # Plot 2 - Ns and Ds
-    f,a = plt.subplots(2,1,sharex=True)
-    sns.lineplot(x='RPM', y='Ns', hue='Nstg', data=designs, ax=a[0])
-    sns.lineplot(x='RPM', y='Ds', hue='Nstg', data=designs, ax=a[1])
-    f.savefig('cmp_sizing_NsDs.png',dpi=1000)
+    # Plot 1
+    f,a = plt.subplots(2,2,sharex=True)
+    sns.lineplot(x='RPM', y='Ns', hue='Nstg', data=designs, ax=a[0,0])
+    sns.lineplot(x='RPM', y='Ds', hue='Nstg', data=designs, ax=a[1,0])
+    sns.lineplot(x='RPM', y='psi', hue='Nstg', data=designs, ax=a[0,1])
+    sns.lineplot(x='RPM', y='mu', hue='Nstg', data=designs, ax=a[1,1])
+    f.savefig('cmp_sizing_noDim.png',dpi=1200)
 
-    # Plot 2 - D and Eff
-    # f, a = plt.subplots(2, 1, sharex=True)
-    # sns.lineplot(x='RPM', y='D', hue='Nstg', data=designs, ax=a[0])
-    # sns.lineplot(x='RPM', y='eff', hue='Nstg', data=designs, ax=a[1])
-
-    sns.PairGrid(designs, x_vars=['RPM'], y_vars=['eff','D'], hue='Nstg')
-    # sns.lineplot(x='RPM', y='eff', hue='Nstg', data=designs, ax=a[1])
-    f.savefig('cmp_sizing_Deff.png', dpi=1000)
-
-    ind = designs.loc[:,type]=='Radial' or designs.loc[:,'type']=='Mixed'
-    designs2 = designs.loc[ind, :]
-    sns.PairGrid(designs2, x_vars=['RPM'], y_vars=['eff', 'D'], hue='Nstg')
-    # sns.lineplot(x='RPM', y='eff', hue='Nstg', data=designs, ax=a[1])
-    plt.savefig('cmp_sizing_Deff_radialMixed.png', dpi=1000)
+    # Plot 2
+    f, a = plt.subplots(3, 2, sharex=True)
+    sns.lineplot(x='RPM', y='eff', hue='Nstg', data=designs, ax=a[0, 0])
+    sns.lineplot(x='RPM', y='psi', hue='Nstg', data=designs, ax=a[1, 0])
+    sns.lineplot(x='RPM', y='mu', hue='Nstg', data=designs, ax=a[2, 0])
+    sns.lineplot(x='RPM', y='D', hue='Nstg', data=designs, ax=a[0, 1])
+    sns.lineplot(x='RPM', y='r2', hue='Nstg', data=designs, ax=a[1, 1])
+    sns.lineplot(x='RPM', y='r1', hue='Nstg', data=designs, ax=a[2, 1])
+    f.savefig('cmp_sizing.png', dpi=1200)

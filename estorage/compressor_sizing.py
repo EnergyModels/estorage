@@ -72,7 +72,7 @@ def SIZE_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM_low=10000, 
 
     # DataFrame to hold results
     variables = ['p_in', 't_in', 'p_out', 'm_dot', 'V1', 'Nstg', 'PR_stg', 'RPM', 'H_ad',
-                 'g', 'Ns', 'Ds', 'D', 'eff', 'type']
+                 'g', 'Ns', 'Ds', 'D', 'eff', 'type','r1','r2','U2','psi','I','mu']
     df = pd.DataFrame(columns=variables)
 
     # Perform Runs
@@ -85,8 +85,9 @@ def SIZE_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM_low=10000, 
             # Balje Calculations (Ideal gas)
             omega = 2 * pi / 60.0 * RPM  # rad/s
             # omega = RPM
-            H_ad = kappa / (kappa - 1.0) * R * t_in * ((PR_stg) ** ((kappa - 1.0) / kappa) - 1.0)  # kJ/kg
+            H_ad = kappa / (kappa - 1.0) * R * t_in * ((PR) ** ((kappa - 1.0) / kappa) - 1.0)/Nstg  # kJ/kg
             Ns = (omega*V1**0.5)/(H_ad)**0.75
+
 
             # Print-out values, if debugging
             if debug == True:
@@ -102,6 +103,13 @@ def SIZE_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM_low=10000, 
                 eff = f_eff(Ns)
                 Ds =  f_Ds(Ns)
                 D = (Ds * (V1) ** 0.5) / (g * H_ad) ** 0.25
+
+                r2 = D/2.0 # Tip radius (m)
+                r1 = r2/2.0 # Hub radius (m)
+                U2 = omega*r2 # Tip speed (m/s)
+                psi = V1/(math.pi*(r2)**2.0*U2) # Flow coefficient (-)
+                I = H_ad / (U2) ** 2.0  # Work input coefficient (-)
+                mu = eff*I # Work coefficient (-)
 
                 # Classify Machine Type
                 if Ns < Ns_radial[1]:
@@ -120,7 +128,8 @@ def SIZE_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM_low=10000, 
                     print '#================#\n'
 
                 # Save Values
-                s = pd.Series(index=['Nstg', 'PR_stg', 'RPM', 'H_ad', 'g', 'Ns', 'Ds', 'D', 'eff', 'type'])
+                s = pd.Series(index=['Nstg', 'PR_stg', 'RPM', 'H_ad', 'g', 'Ns', 'Ds', 'D', 'eff', 'type',
+                                     'r1','r2','U2','psi','I','mu'])
                 s['Nstg'] = Nstg
                 s['PR_stg'] = PR_stg
                 s['RPM'] = RPM
@@ -131,6 +140,12 @@ def SIZE_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM_low=10000, 
                 s['D'] = D
                 s['eff'] = eff
                 s['type'] = machine_type
+                s['r1'] = r1
+                s['r2'] = r2
+                s['U2'] = U2
+                s['psi'] = psi
+                s['I'] = I
+                s['mu'] = mu
                 df = df.append(s, ignore_index=True)
 
     # Store Inputs
