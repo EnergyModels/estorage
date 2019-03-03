@@ -6,7 +6,7 @@ import numpy as np
 import math
 
 
-def DESIGN_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM=10000, Nstgs=6, debug=False):
+def DESIGN_AIR_TRB(p_in=10.0, t_in=370.0, p_out=1.01325, m_dot=2.2, RPM=10000, Nstgs=3, debug=False):
     # Convert Inputs
     p_in = p_in * 1E5  # from bar to Pa
     t_in = t_in + 273.15  # from C to K
@@ -25,7 +25,7 @@ def DESIGN_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM=10000, Ns
     # Balje Calculations
     omega = 2 * pi / 60.0 * RPM  # rad/s
     PR = p_out/p_in
-    H_ad = kappa / (kappa - 1.0) * R * t_in * ((PR) ** ((kappa - 1.0) / kappa) - 1.0)/Nstgs  # kJ/kg
+    H_ad = kappa / (kappa - 1.0) * R * t_in * (1.0 - (PR) ** ((kappa - 1.0) / kappa))/Nstgs  # kJ/kg
     H = H_ad * m_dot
 
     # Print-out values, if debugging
@@ -46,9 +46,9 @@ def DESIGN_AIR_CMP(p_in=1.01325, t_in=20.0, p_out=10.0, m_dot=2.2, RPM=10000, Ns
     # Perform Runs
     for Nstg in range(Nstgs):
 
-        PR_stg = (1.0+(H_ad/(t_in*R*(kappa/(kappa-1.0)))))**(kappa/(kappa-1.0))
+        PR_stg = (1.0-(H_ad/(t_in*R*(kappa/(kappa-1.0)))))**(kappa/(kappa-1.0))
         p_out = p_in * PR_stg
-        t_out = t_in+t_in*(PR_stg**((kappa-1.0)/kappa)-1.0)
+        t_out = t_in-t_in*(1.0-PR_stg**((kappa-1.0)/kappa))
 
         # Volumetric flow Rate
         D_in = PropsSI('D', 'T', t_in, 'P', p_in, fluid)  # Density (kg/m3)
