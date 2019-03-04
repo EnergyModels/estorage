@@ -375,5 +375,72 @@ class ACAES_IDEALGAS_0D:
         # Save
         plt.savefig(savename + ".png", DPI=1000)
 
+    def create_pretty_plots(self, savename='Results'):
+        f, ax = plt.subplots(nrows=3, ncols=2, figsize=(10, 6))
+        # ----
+        # Charging
+        # ----
+        x = self.dfC['t']/60.0
+        # Temp
+        convert = 273.15
+        ax[0, 0].plot(x, self.dfC['T1'] - convert, label='Compressor - In', marker='o')
+        ax[0, 0].plot(x, self.dfC['T2'] - convert, label='Compressor - Out', marker='v')
+        # ax[0, 0].plot(x, self.dfC['T3'] - convert, label='T3', marker='x')
+        ax[0, 0].plot(x, self.dfC['T_cav'] - convert, label='Cavern', marker='<')
+        ax[0, 0].plot(x, self.dfC['T_c'] - convert, label='HTF - Cold', marker='>')
+        ax[0, 0].plot(x, self.dfC['T_h'] - convert, label='HTF - Hot', marker='*')
+        ax[0, 0].legend()
+        ax[0, 0].set_ylabel('Temp [C]')
+        # Press
+        convert = 1E-5
+        ax[1, 0].plot(x, self.dfC['p1'] * convert, label='Air - In', marker='o')
+        # ax[1, 0].plot(x, self.dfC['p2'] * convert, label='p2', marker='v')
+        # ax[1, 0].plot(x, self.dfC['p3'] * convert, label='p3', marker='x')
+        ax[1, 0].plot(x, self.dfC['p_cav'] * convert, label='Cavern', marker='<')
+        ax[1, 0].legend()
+        ax[1, 0].set_ylabel('Pressure [bar]')
+        # Mass Storage
+        convert = 1E-6
+        ax[2, 0].plot(x, self.dfC['m_cav']*convert, label='Cavern', marker='o')
+        ax[2, 0].plot(x, self.dfC['m_h']*convert, label='HTF', marker='x')
+        ax[2, 0].legend()
+        ax[2, 0].set_ylabel('Mass Storage [Gg]')
+        ax[2, 0].set_xlabel('Time [hr]')
+
+        # ----
+        # Discharging
+        # ----
+        x = self.dfD['t']
+        # Temp
+        convert = 273.15
+        # ax[0, 1].plot(x, self.dfD['T4'] - convert, label='T4', marker='o')
+        ax[0, 1].plot(x, self.dfD['T5'] - convert, label='Turbine - In', marker='v')
+        ax[0, 1].plot(x, self.dfD['T6'] - convert, label='Turbine - Out', marker='x')
+        ax[0, 1].plot(x, self.dfD['T_cav'] - convert, label='Cavern', marker='<')
+        ax[0, 1].plot(x, self.dfD['T_c'] - convert, label='HTF - Cold', marker='>')
+        ax[0, 1].plot(x, self.dfD['T_h'] - convert, label='HTF - Hot', marker='*')
+        ax[0, 1].legend()
+        ax[0, 1].set_ylabel('Temp [C]')
+
+        # Press
+        convert = 1E-5
+        # ax[1, 1].plot(x, self.dfD['p4'] * convert, label='p4', marker='o')
+        # ax[1, 1].plot(x, self.dfD['p5'] * convert, label='p5', marker='v')
+        ax[1, 1].plot(x, self.dfD['p6'] * convert, label='Air - Out', marker='x')
+        ax[1, 1].plot(x, self.dfD['p_cav'] * convert, label='Cavern', marker='<')
+        ax[1, 1].legend()
+        ax[1, 1].set_ylabel('Pressure [bar]')
+        # Mass Storage
+        convert = 1E-6
+        ax[2, 1].plot(x, self.dfD['m_cav']*convert, label='Cavern', marker='o')
+        ax[2, 1].plot(x, self.dfD['m_h']*convert, label='HTF', marker='x')
+        ax[2, 1].legend()
+        ax[2, 1].set_ylabel('Mass Storage [Mg]')
+        ax[2, 1].set_xlabel('Time [hr]')
+
+        # Save
+        plt.tight_layout()
+        plt.savefig(savename + ".png", DPI=1200)
+
 # TO ADD
 # Check energy balance
