@@ -3,76 +3,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 sns.set_style('white')
 
-#================================
-# Transient Simulation
-#================================
-sns.set_style('white')
-
-# Import results
-df = pd.read_csv("single_run_results.csv")
-
-
-f, ax = plt.subplots(nrows=3, ncols=2, figsize=(8, 5))
-
-# ----
-# Charging
-# ----
-x = self.dfC['t']
-# Temp
-convert = 273.15
-ax[0, 0].plot(x, self.dfC['T1'] - convert, label='T1', marker='o')
-ax[0, 0].plot(x, self.dfC['T2'] - convert, label='T2', marker='v')
-ax[0, 0].plot(x, self.dfC['T3'] - convert, label='T3', marker='x')
-ax[0, 0].plot(x, self.dfC['T_cav'] - convert, label='T_cav', marker='<')
-ax[0, 0].plot(x, self.dfC['T_c'] - convert, label='T_c', marker='>')
-ax[0, 0].plot(x, self.dfC['T_h'] - convert, label='T_h', marker='*')
-ax[0, 0].legend()
-ax[0, 0].set_ylabel('Temp [C]')
-# Press
-convert = 1E-5
-ax[1, 0].plot(x, self.dfC['p1'] * convert, label='p1', marker='o')
-ax[1, 0].plot(x, self.dfC['p2'] * convert, label='p2', marker='v')
-ax[1, 0].plot(x, self.dfC['p3'] * convert, label='p3', marker='x')
-ax[1, 0].plot(x, self.dfC['p_cav'] * convert, label='p_cav', marker='<')
-ax[1, 0].legend()
-ax[1, 0].set_ylabel('Pressure [bar]')
-# Mass Storage
-ax[4, 0].plot(x, self.dfC['m_cav'], label='m_cav', marker='o')
-ax[4, 0].plot(x, self.dfC['m_h'], label='m_h', marker='x')
-ax[4, 0].legend()
-ax[4, 0].set_ylabel('Mass Storage [kg]')
-
-# ----
-# Discharging
-# ----
-x = self.dfD['t']
-# Temp
-convert = 273.15
-ax[0, 1].plot(x, dfD['T4'] - convert, label='T4', marker='o')
-ax[0, 1].plot(x, dfD['T5'] - convert, label='T5', marker='v')
-ax[0, 1].plot(x, dfD['T6'] - convert, label='T6', marker='x')
-ax[0, 1].plot(x, dfD['T_cav'] - convert, label='T_cav', marker='<')
-ax[0, 1].plot(x, dfD['T_c'] - convert, label='T_c', marker='>')
-ax[0, 1].plot(x, dfD['T_h'] - convert, label='T_h', marker='*')
-ax[0, 1].legend()
-ax[0, 1].set_ylabel('Temp [C]')
-
-# Press
-convert = 1E-5
-ax[1, 1].plot(x, dfD['p4'] * convert, label='p4', marker='o')
-ax[1, 1].plot(x, dfD['p5'] * convert, label='p5', marker='v')
-ax[1, 1].plot(x, dfD['p6'] * convert, label='p6', marker='x')
-ax[1, 1].plot(x, dfD['p_cav'] * convert, label='p_cav', marker='<')
-ax[1, 1].legend()
-ax[1, 1].set_ylabel('Pressure [bar]')
-# Mass Storage
-ax[4, 1].plot(x, dfD['m_cav'], label='m_cav', marker='o')
-ax[4, 1].plot(x, dfD['m_h'], label='m_h', marker='x')
-ax[4, 1].legend()
-ax[4, 1].set_ylabel('Mass Storage [kg]')
-
-# Save
-plt.savefig(savename + ".png", DPI=1000)
 
 
 
@@ -90,7 +20,8 @@ results_filename = "results_monte_carlo.csv"
 savename = "Poster_Fig_Monte_Carlo.png"
 # =============================================================================#
 sns.set_style('white')
-
+sns.set_context('poster')
+# sns.set_context('talk',font_scale=1.5)
 # Import results
 df = pd.read_csv("results_monte_carlo.csv")
 
@@ -115,36 +46,43 @@ ind_design = df.loc[:,'RTE'] == design_eff
 df.loc[ind_design,'Goal'] = 'Design'
 
 # Plotting Inputs
-x_vars = ["p_min", "p_max","V"]
-x_labels = ["Min Pressure (bar)","Max Pressure (bar)","Cavern Volume (1E3 m3)"]
-x_converts = [1,1,1E-3]
+x_vars = ["p_max","V"]
+x_labels = ["Max Pressure (bar)","Cavern Volume (1E3 m3)"]
+x_converts = [1,1E-3]
+x_ticks = [[0,50,100],[0,15,30]]
+x_lims = [[0,100],[0,30]]
 
 y_vars = ["RTE","E_in"]
-y_labels = ["Round Trip Efficiency (%)", "Storage Capacity (MWh)"]
+y_labels = ["RTE (%)", "Storage (MWh)"]
 y_converts = [1,1]
+y_ticks = [[40,65,90],[0,350,700]]
+y_lims = [[40,90],[0,700]]
 
 series_var = 'Goal'
-series_vals = ['RTE','Ein','Neither','Design']
-series_labels = ['RTE Goal','Storage Goal','Neither','Design']
-series_colors = sns.color_palette()
+series_vals = ['Neither','RTE','Ein','Design']
+series_labels = ['Neither','RTE Goal','Storage Goal','Design']
+series_colors = [(0.380,0.380,0.380),(0.957,0.451,0.125),(.047, 0.149, 0.361),(0.847,0.000,0.067)]
 series_markers = ['x', '+','o','*']
+series_marker_sizes = [40,40,40,300]
 
-DPI = 1200
+DPI = 1000
 
 # Create Plots
 nrows = len(y_vars)
 ncols = len(x_vars)
 
-f, ax = plt.subplots(nrows, ncols,figsize=(8,5))
+# f, ax = plt.subplots(nrows, ncols,figsize=(6,5))
+f, ax = plt.subplots(nrows, ncols)
+
 
 # Iterate Rows (Y variables)
-for i,y_var,y_label,y_convert in zip(range(nrows),y_vars,y_labels,y_converts):
+for i,y_var,y_label,y_convert, y_tick,y_lim in zip(range(nrows),y_vars,y_labels,y_converts,y_ticks,y_lims):
 
     # Itereate Columns (X variables)
-    for j, x_var, x_label, x_convert in zip(range(ncols), x_vars, x_labels, x_converts):
+    for j, x_var, x_label, x_convert, x_tick,x_lim in zip(range(ncols), x_vars, x_labels, x_converts,x_ticks,x_lims):
 
         # Iterate Series
-        for series_val,label,color,marker in zip(series_vals,series_labels,series_colors,series_markers):
+        for series_val,label,color,marker,size in zip(series_vals,series_labels,series_colors,series_markers,series_marker_sizes):
 
             # Select entries of interest
             df2 = df[(df.loc[:,series_var] == series_val)]
@@ -152,7 +90,7 @@ for i,y_var,y_label,y_convert in zip(range(nrows),y_vars,y_labels,y_converts):
             # Plot
             x = df2.loc[:, x_var] * x_convert
             y = df2.loc[:, y_var] * y_convert
-            ax[i,j].scatter(x.values, y.values, c=color, marker=marker, label=label)
+            ax[i,j].scatter(x.values, y.values, c=color, s=size, marker=marker, label=label,edgecolors='none')
 
         # X-axis Labels (Only bottom)
         if i == nrows-1:
@@ -168,19 +106,30 @@ for i,y_var,y_label,y_convert in zip(range(nrows),y_vars,y_labels,y_converts):
             ax[i,j].get_yaxis().set_visible(False)
 
         # Set X and Y Limits
-        # ax.set_xlim(left=xlims[0], right=xlims[1])
-        # ax.set_ylim(bottom=ylims[0],top=ylims[1])
+        if len(x_lim)== 2:
+            ax[i,j].set_xlim(left=x_lim[0], right=x_lim[1])
+        if len(y_lim) ==2 :
+            ax[i,j].set_ylim(bottom=y_lim[0],top=y_lim[1])
 
-        # if len(xticks) > 2:
-        #     ax.xaxis.set_ticks(xticks)
-        # #        ax.set_xticks(xticks)
-        # #        ax.set_xticklabels = xtick_labels
+        if len(x_tick) > 2:
+            ax[i,j].xaxis.set_ticks(x_tick)
+
+        if len(y_tick) > 2:
+            ax[i,j].yaxis.set_ticks(y_tick)
+        #        ax.set_xticks(xticks)
+        #        ax.set_xticklabels = xtick_labels
 
 
 # Legend (only for middle bottom)
-leg = ax[nrows-1,ncols/2].legend(bbox_to_anchor=(2.0, -0.2), ncol=len(series_labels), prop={'size': 12})
+# leg = ax[nrows-1,0].legend(bbox_to_anchor=(1.0, -0.3), loc='center',ncol=len(series_labels), prop={'size': 12}, frameon = False)
+leg = ax[nrows-1,0].legend(bbox_to_anchor=(1.0, -0.5), loc='center',ncol=len(series_labels), frameon = False, scatterpoints = 1)
 
 # Adjust layout
+
+
+f.subplots_adjust(wspace = 0.2,hspace=0.2)
+f.set_size_inches([ 10.0,   7.25 ])
+f.set_size_inches([ 10.0,   8.0 ])
 plt.tight_layout()
 
 # Save Figure
